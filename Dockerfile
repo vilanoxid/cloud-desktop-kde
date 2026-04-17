@@ -1,18 +1,19 @@
-# Ubuntu 24.04 (Noble Numbat)
+
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Setup user
-ARG NB_USER=jovyan
-ARG NB_UID=1000
-ENV USER ${NB_USER}
-ENV HOME /home/${NB_USER}
-RUN useradd -m -s /bin/bash -N -u ${NB_UID} ${NB_USER}
+# Set up environment variables
+ENV NB_USER=jovyan
+ENV NB_UID=1000
+ENV HOME=/home/${NB_USER}
 
-# 1. Install software-properties-common to add PPAs
-# 2. Add Kubuntu Backports for Plasma 6
-# 3. Install core KDE, NoVNC, and Firefox
+# Fix: Instead of creating a new user, we rename the existing 'ubuntu' user to 'jovyan'
+RUN usermod -l ${NB_USER} ubuntu && \
+    groupmod -n ${NB_USER} ubuntu && \
+    usermod -d ${HOME} -m ${NB_USER}
+
+# Install PPAs and KDE Plasma 6
 RUN apt-get update && apt-get install -y software-properties-common && \
     add-apt-repository -y ppa:kubuntu-ppa/backports && \
     apt-get update && apt-get install -y \
@@ -30,10 +31,10 @@ RUN apt-get update && apt-get install -y software-properties-common && \
 # Install the Desktop Bridge
 RUN pip install --no-cache-dir --break-system-packages jupyter-remote-desktop-proxy
 
-# Add a command to show the version in the terminal on startup
-RUN echo 'echo "--- SYSTEM INFO ---"' >> ${HOME}/.bashrc && \
-    echo 'plasmashell --version' >> ${HOME}/.bashrc && \
-    echo 'echo "-------------------"' >> ${HOME}/.bashrc
+# Version check for startup
+RUN echo 'echo "--- KDE PLASMA VERSION CHECK ---"' >> ${HOME}/.bashrc && \
+    echo 'plasmashell --version || echo "KDE starting up..."' >> ${HOME}/.bashrc && \
+    echo 'echo "---------------------------------"' >> ${HOME}/.bashrc
 
 USER ${NB_USER}
 WORKDIR ${HOME}
